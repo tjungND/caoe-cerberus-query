@@ -1,0 +1,280 @@
+#include <cassert>
+#include <getopt.h>
+#include <iostream>
+#include <set>
+#include <string>
+#include <vector>
+
+#include "../include/FileCommunicator.h"
+#include "../include/basic_psi.h"
+#include "../include/common.h"
+#include "../include/new_psi.h"
+
+using namespace lbcrypto;
+using namespace std;
+
+int main(int argc, char **argv) {
+
+  set<unsigned int> source_powers;
+  source_powers.insert(1);
+  string pk_file, context_file, sk_file, communicator_uri, evk_file;
+  unsigned int chebyshev_approx_degree = 0;
+  unsigned int num_senders = 0;
+  // bool multiparty = false; //To be used later
+  bool preprocess = true;
+  unsigned int party_id =
+      1; // sender's party ID should be 1 if receiver's is 0: Default values
+  Method method = FINITE_FIELD;
+  unsigned int num_stdin_inputs = 0;
+  string query_file;
+  unsigned int ps_bound = 0;
+
+  // Read in arguments
+  int c;
+  while ((c = getopt(argc, argv, "p:k:c:s:u:a:n:m:e:h:i:b:w:l:")) != -1) {
+    switch (c) {
+    case 'l': {
+      ps_bound = atoi(optarg);
+      break;
+    }
+    case 'e': {
+      preprocess = false;
+      // Read receiver inputs (ciphertexts) from the specified file
+      // Only a single ciphertext at this time, but we can write a while loop to
+      // repeatedly try to take 1 ciphertext from stdin
+      query_file = optarg; // full location of input here
+      break;
+    }
+    case 'b': {
+      method = APPROXIMATE;
+      break;
+    }
+    case 'i': {
+      party_id = atoi(optarg);
+      break;
+    }
+    case 'p': {
+      unsigned int pow = atoi(optarg);
+      if (pow) {
+        source_powers.insert(pow);
+      } else {
+        cerr << "Error: invalid source power: " << optarg << endl;
+        return 1;
+      }
+      break;
+    }
+    case 'k': {
+      pk_file = optarg;
+      break;
+    }
+    case 'c': {
+      context_file = optarg;
+      break;
+    }
+    case 's': {
+      sk_file = optarg;
+      break;
+    }
+    case 'u': {
+      communicator_uri = optarg;
+      break;
+    }
+    case 'm': {
+      evk_file = optarg;
+      break;
+    }
+    case 'a': {
+      chebyshev_approx_degree = atoi(optarg);
+      if (chebyshev_approx_degree <= 1) {
+        cerr << "Error: Chebyshev approximation degree is too low: " << optarg
+             << endl;
+        return 1;
+      }
+      break;
+    }
+    case 'n': {
+      num_senders = atoi(optarg);
+      if (!num_senders) {
+        cerr << "Invalid number of senders: " << optarg << endl;
+        return 1;
+      }
+      break;
+    }
+    default:
+      std::cout << "Invalid argument: " << c << std::endl;
+      return 1;
+    }
+  }
+
+  // Validate arguments
+  assert(communicator_uri != "");
+  assert(context_file != "");
+  assert(pk_file != "");
+  assert(num_senders);
+  assert(chebyshev_approx_degree > 1);
+  assert(evk_file != "");
+  assert(party_id); // Party ID should be
+
+  // Initialize objects
+  // CryptoContext
+  CryptoContext<DCRTPoly> cryptoContext;
+  cryptoContext->ClearEvalMultKeys();
+  cryptoContext->ClearEvalAutomorphismKeys();
+  lbcrypto::CryptoContextFactory<lbcrypto::DCRTPoly>::ReleaseAllContexts();
+  if (!Serial::DeserializeFromFile(context_file, cryptoContext,
+                                   SerType::BINARY)) {
+    std::cerr << "Cannot read serialized data from: " << context_file
+              << std::endl;
+    return 1;
+  }
+  // Public key
+  PublicKey<DCRTPoly> pubKey;
+  if (!Serial::DeserializeFromFile(pk_file, pubKey, SerType::BINARY)) {
+    std::cerr << "Cannot read serialized data from: " << pk_file << std::endl;
+    return 1;
+  }
+
+  // Read and encrypt sender values from stdin, if no user input is provided
+  // Write to stdout
+  vector<Ciphertext<DCRTPoly>> sender_enc_values;
+  vector<Plaintext> sender_poly_plaintexts;
+  if (preprocess) {
+    vector<uint64_t> user_inputs;
+    user_inputs.reserve(USER_INPUT_GUESS);
+    uint64_t val;
+    while (std::cin >> val) {
+      user_inputs.push_back(val);
+    }
+    // Spaghetti code - encrypt/preprocess, and write out if not doing entire
+    // PSI
+    if (method == FINITE_FIELD) {
+      sender_poly_plaintexts = sender_polynomial(user_inputs, cryptoContext);
+      for (const Plaintext &pt : sender_poly_plaintexts) {
+        Serial::Serialize(pt, std::cout, lbcrypto::SerType::BINARY);
+      }
+    } else {
+      // Using the CKKS-based method, with sender ciphertexts
+      sender_enc_values = sender_encrypt(user_inputs, cryptoContext, pubKey);
+      for (const Ciphertext<DCRTPoly> &ct : sender_enc_values) {
+        Serial::Serialize(ct, std::cout, lbcrypto::SerType::BINARY);
+      }
+    }
+    return 0;
+  } else {
+    // Read sender inputs from stdin
+    assert(num_stdin_inputs);
+    Plaintext pt;
+    Ciphertext<DCRTPoly> ct;
+    for (unsigned int i = 0; i < num_stdin_inputs; i++) {
+      if (method == FINITE_FIELD) {
+        Serial::Deserialize(pt, std::cin, lbcrypto::SerType::BINARY);
+        sender_poly_plaintexts.push_back(pt);
+      } else {
+        Serial::Deserialize(ct, std::cin, lbcrypto::SerType::BINARY);
+        sender_enc_values.push_back(ct);
+      }
+    }
+  }
+
+  // Evaluation keys - technically not needed if we're just encrypting and
+  // finishing, but shouldn't be too much overhead
+  std::ifstream multKeyIStream(evk_file, std::ios::in | std::ios::binary);
+  if (!multKeyIStream.is_open()) {
+    std::cerr << "Cannot read serialization from " << evk_file << std::endl;
+    return 1;
+  }
+  if (!cryptoContext->DeserializeEvalMultKey(multKeyIStream, SerType::BINARY)) {
+    std::cerr << "Could not deserialize eval mult key file" << std::endl;
+    return 1;
+  }
+
+  // Communicator - also not needed here, and could be moved to later
+  // Only FileCommunicator implemented at this time, so this may need
+  // refactoring
+  Communicator *comm =
+      new FileCommunicator(party_id, num_senders + 1, communicator_uri);
+
+  // Also, read receiver inputs from the specified file
+  assert(query_file != "");
+
+  // Do the PSI, writing outputs to stdout
+  // Precomputation: get the DAG
+  PowersDag dag;
+  std::set<unsigned int> target_powers;
+  for (unsigned int i = 1;
+       i < std::max(sender_poly_plaintexts.size(), sender_enc_values.size());
+       i++) {
+    if (!ps_bound) {
+      target_powers.insert(i);
+    } else {
+      if (i < ps_bound || i % ps_bound == 0) {
+        target_powers.insert(i);
+      }
+    }
+  }
+  dag.configure(source_powers, target_powers);
+
+  // First, read all powers from querier
+  // Query must contain a series of (power, ct)
+  // For CKKS-based PSI, this will be (1, ct)
+  vector<Ciphertext<DCRTPoly>> query_ct_powers;
+  query_ct_powers.resize(target_powers.size());
+  size_t query_ct_idx = 0;
+  for (const unsigned int i : source_powers) {
+    // First, get an unsigned int from the querier determining the index to
+    // place a ciphertext
+    // unsigned int idx;
+    // if (comm->read(0, (void *)&idx, sizeof(idx)) == -1) {
+    //   std::cout << "Error reading ciphertext index #" << i << std::endl;
+    // }
+    // sources.insert(idx);
+
+    assert(i <= query_ct_powers.size());
+    assert(i >= 1);
+    // Then, read the Ciphertext
+    if (comm->read_ciphertext(0, query_ct_powers[i - 1]) == -1) {
+      std::cerr << "Error reading ciphertext power" << i << " from input #"
+                << query_ct_idx - 1 << std::endl;
+      return 1;
+    }
+    query_ct_idx++;
+  }
+  // Check that we got all the source powers
+  // assert(sources == source_powers);
+
+  // Now, compute the powers
+  compute_all_powers(dag, query_ct_powers, cryptoContext);
+
+  // Now, apply the PSI
+  Ciphertext<DCRTPoly> query_result;
+  if (method == FINITE_FIELD) {
+    if (ps_bound) {
+      query_result = eval_sender_poly_PS(
+          query_ct_powers, sender_poly_plaintexts, cryptoContext, ps_bound);
+    } else {
+      query_result = eval_sender_poly_dot(
+          query_ct_powers, sender_poly_plaintexts, cryptoContext);
+    }
+  } else {
+    // Approximate PSI
+    // TODO parameterize these
+    const static unsigned int K = K_DEFAULT;
+    const static unsigned int S = S_DEFAULT;
+    const static long max_item_difference = 1 << 20;
+    query_result =
+        query(sender_enc_values, query_ct_powers.at(0), cryptoContext, K, S,
+              chebyshev_approx_degree, max_item_difference);
+  }
+  // TODO parallelize these sections
+  // Send result to sender
+  comm->send_ciphertext(0,
+                        query_result); // 0 is the party we are trying to send
+  // Write result to stdout too
+  Serial::Serialize(query_result, std::cout, lbcrypto::SerType::BINARY);
+
+  // Cleanup
+  delete comm;
+  comm = nullptr;
+
+  return 0;
+}
