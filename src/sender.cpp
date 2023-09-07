@@ -55,9 +55,11 @@ int main(int argc, char **argv) {
   unsigned int ps_low_degree = 0;
   string sender_poly_filename = "";
 
+  int sender_set_bits = 0;
+
   // Parse command-line arguments using GNU getopt
   int opt;
-  while ((opt = getopt(argc, argv, "c:p:e:qt:s:l:m:r:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:p:e:qt:s:l:m:r:b:")) != -1) {
     switch (opt) {
     case 'c':
       contextFile = optarg;
@@ -86,6 +88,10 @@ int main(int argc, char **argv) {
     }
   case 'r':{
       privateKeyFile = optarg;
+      break;
+  }
+  case 'b':{
+      sender_set_bits = atoi(optarg);
       break;
   }
     default:
@@ -241,7 +247,7 @@ int main(int argc, char **argv) {
     result =
         query_sender_batched(sender_ckks_inputs, query_ctext, cryptoContext,
                              POLYNOMIAL_APPROX_DEG, 0, MAX_ITEM_DIFFERENCE
-                             , keyPair.secretKey
+                             , keyPair.secretKey, sender_set_bits
                              );
     end = high_resolution_clock::now();
     std::cerr << "\tEncrypted query: " << duration_cast<chrono::milliseconds>(end-start).count() << "ms" << std::endl;

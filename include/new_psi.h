@@ -187,7 +187,7 @@ query_sender_batched(std::vector<Ciphertext<DCRTPoly>> &sender_vals,
                      const CryptoContext<DCRTPoly> &cryptoContext,
                      const unsigned int poly_deg, const long low_bound,
                      const long high_bound
-                     , const PrivateKey<DCRTPoly> & sk
+                     , const PrivateKey<DCRTPoly> & sk, const int sender_set_bits
                      ) {
   const static bool QUERY_DEBUG = true;                     
   assert(low_bound < high_bound);
@@ -195,9 +195,73 @@ query_sender_batched(std::vector<Ciphertext<DCRTPoly>> &sender_vals,
   auto derivative_htan_func = [](double x) -> double {
     return (1 - tanh(pow(10.0*x, 2)));
   };
-  const double L = 2.58;
-  const int n = 6;
-  const double R = 34;
+  //const double L = 2.58;
+  //const int n = 6;
+  //const double R = 27.5;
+  
+  double L=0;
+  double R=0;
+  int n=0;
+  size_t j=0;
+  size_t k=0;
+  int poly_approx_deg = 0;
+
+  /*
+  const double nn = 1;
+  const double RR = 57;
+  */
+
+
+  switch (sender_set_bits) {
+    case 8:
+      L = 2.56;
+      R = 16;
+      n = 3;
+      j=1;
+      k=3;
+      poly_approx_deg=27;
+      break;
+
+    case 10:
+      L = 2.58;
+      R = 24;
+      n = 4;
+      j=4;
+      k=3;
+      poly_approx_deg=27;
+      break;	
+
+    case 13:
+      L = 2.58;
+      R = 27.5;
+      n = 6;
+      j=4;
+      k=3;
+      poly_approx_deg=27;
+      break;
+
+    case 15:
+      L = 2.58;
+      R = 43.5;
+      n = 7;
+      j=4;
+      k=3;
+      poly_approx_deg=27;
+      break;
+
+    case 20:
+      L = 2.59;
+      R = 200;
+      n = 9;
+      j=2;
+      k=3;
+      poly_approx_deg=247;
+      break;
+
+    default:
+    cout << "Provide one of these sender set size bits: 8, 10, 13, 15, 20.";
+    exit(1);
+  }
 
   /*
   const double nn = 1;
@@ -233,18 +297,17 @@ query_sender_batched(std::vector<Ciphertext<DCRTPoly>> &sender_vals,
       cerr << "done.\n\t\tComputing spike function (w/ Chebyshev approximation)...";
     }
     sender_vals[i] = cryptoContext->EvalChebyshevFunction(
-        derivative_htan_func, sender_vals[i], -R, R, poly_deg);
+        derivative_htan_func, sender_vals[i], -R, R, poly_approx_deg);
     if(QUERY_DEBUG){
       cerr << "done.\n\t\tExaggerating spike...";
     }
-     cryptoContext->EvalSquareInPlace(sender_vals[i]); // creating more difference in the zero and non-zero values
-     cryptoContext->EvalSquareInPlace(sender_vals[i]);
-     cryptoContext->EvalSquareInPlace(sender_vals[i]);
-     cryptoContext->EvalSquareInPlace(sender_vals[i]);
-     cryptoContext->EvalMultInPlace(sender_vals[i], SPSI_SCALE);
-     cryptoContext->EvalSquareInPlace(sender_vals[i]);
-     cryptoContext->EvalSquareInPlace(sender_vals[i]);
-     cryptoContext->EvalSquareInPlace(sender_vals[i]);
+    for (size_t m = 0; m < j; m++) {
+      cryptoContext->EvalSquareInPlace(sender_vals[i]);
+    }
+    cryptoContext->EvalMultInPlace(sender_vals[i], SPSI_SCALE);
+    for (size_t m = 0; m < k; m++) {
+       cryptoContext->EvalSquareInPlace(sender_vals[i]);
+     }
     if(QUERY_DEBUG){
       cerr << "done.\n";
     }

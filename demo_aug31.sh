@@ -8,7 +8,7 @@
 : "${ONLINE:=1}"
 : "${DO_HASHING:=0}"
 : "${PARALLEL:=0}"
-: "${ONE_SITE:=0}"
+: "${ONE_SITE:=1}"
 : "${INTERSECTION:=0}"
 : "${TYPE:=CKKS}"
 #Parameters for multiparty functionality
@@ -44,9 +44,13 @@ if [ $SETUP -eq "1" ]; then
   fi
 fi  
 
+# SENDER_BITS has to be one of these: 8, 10, 13, 15, 20
+SENDER_BITS=8
 
+NUM_SENDER_INPUTS=$(echo "2^$SENDER_BITS" | bc) #Implicit: inputs per region; this will be divided among parties and partitions
+DEPTH=23
 #Input parameters here
-NUM_SENDER_INPUTS=9992 #Implicit: inputs per region; this will be divided among parties and partitions
+#NUM_SENDER_INPUTS=8192 #Implicit: inputs per region; this will be divided among parties and partitions
 NUM_PARTITIONS=1
 
 FAKE_EMAIL_FILE=data/fake_emails.txt
@@ -133,7 +137,6 @@ echo $RECEIVER_INPUT > data/receiver.txt
 #PLAIN_RESULT=$($PLAIN -s $PLAIN_INPUT_FILE -r data/receiver.txt)
 #echo Plain result is $PLAIN_RESULT
 
-DEPTH=38
 if [ "$TYPE" = "BFV" ]; then
   DEPTH=8
 fi
@@ -273,7 +276,7 @@ for ((j=0; j<NUM_PARTIES; j++)); do
     fi
     if [ $ONLINE -eq "1" ]; then  
       if [ $j -eq "0" ] || [ $ONE_SITE -eq "0" ]; then
-        echo "bin/sender -t $TYPE $KEY_FILE_ARGS_NO_PRIVKEY -s 1 -l $PS_LOW_DEGREE -m $SENDER_CTEXT_FILE < data/query.ctext > data/result_0_${j}.ctext -r data/privatekey_0.bin" >> $SENDER_CMD_FILE
+        echo "bin/sender -t $TYPE $KEY_FILE_ARGS_NO_PRIVKEY -s 1 -b $SENDER_BITS -l $PS_LOW_DEGREE -m $SENDER_CTEXT_FILE < data/query.ctext > data/result_0_${j}.ctext -r data/privatekey_0.bin" >> $SENDER_CMD_FILE
       fi  
       #Last SK for debug purposes - if you take this out without removing debugging decryption, there will be a crash
     fi
