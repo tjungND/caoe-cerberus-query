@@ -1,22 +1,20 @@
-# APSI: C++ library for Private Segmented Membership Test (PSMT)
+# PSMT: C++ library for Private Segmented Membership Test
 
 - [Introduction](#introduction)
-  - [Private Membership Test](#(unlabeled)-psi-and-labeled-psi)
-  - [Sender and Receiver](#sender-and-receiver)
-- [How PSMT Works](#how-apsi-works)
+  - [Private Segmented Membership Test](#Private-Segmented-Membership-Test-(PMT))
+- [How PSMT Works](#how-psmt-works)
   - [Homomorphic Encryption](#homomorphic-encryption)
   - [Theory](#theory)
-  - [Practice](#practice)
-- [Using PSMT](#using-apsi)
+- [Using PSMT](#using-psmt)
   - [Receiver](#receiver)
-  - [Sender](#sender)
-  - [Domain Extension Polynomial (DEP) parameters](#psiparams)
-- [Building APSI](#building-apsi)
+  - [Sender](#Sender(s))
+  - [Domain Extension Polynomial (DEP) parameters](#Domain-Extension-Polynomial-(DEP)-parameters)
+- [Building PSMT](#building-psmt)
 - [Command-Line Interface (CLI)](#command-line-interface-(cli))
   - [Common Arguments](#common-arguments)
   - [Receiver](#receiver-1)
   - [Sender](#sender-1)
-  - [Test Data](#test-data)
+  - [Test](#test)
 
 ## Introduction
 
@@ -103,7 +101,7 @@ For example, a bad approximation accuracy of non-linear function can cause the r
 There are multiple ways of preventing this from happening. We used a technique involving homomorphic squaring and scaling. First, we squared all the values such that the non-intersection values are mapped to smaller and smaller values (since they are in the interval `[0,1)`). Then, we scale those value using a scaling factor, to increase the difference between values that were meant to be mapped to non-zero and zero values. Now, squaring these values again, would increase the difference further.
 
 
-## Using SPSI
+## Using PSMT
 
 ### Receiver
 
@@ -118,13 +116,13 @@ The `sender.cpp` class implements all necessary functions to process and respond
 For simplicity, we use `Sender` to denote `sender.cpp`.
 `Sender` batches the query into a single ciphertext and performs the polynomial approximation on the batched ciphertext.
 
-### DEP Params
+### Domain Extension Polynomial (DEP) parameters
 
 
 ## Building PSMT
 
 To simply use the PMST library, we recommend to build and install PSMT with [vcpkg](https://github.com/microsoft/vcpkg).
-To use the example command-line interface or run tests, follow the guide below to build and [install APSI manually](#building-and-installing-apsi-manually).
+To use the example command-line interface or run tests, follow the guide below to build and [install PSMT manually](#building-and-installing-psmt-manually).
 
 ### Requirements
 
@@ -134,11 +132,11 @@ To use the example command-line interface or run tests, follow the guide below t
 
 ### Building and Installing PSMT
 
-APSI has multiple external dependencies that must be pre-installed. They are listed in `dependencies.sh`.
+PSMT has multiple external dependencies that must be pre-installed. They are listed in `dependencies.sh`.
 
 ## Command-Line Interface (CLI)
 
-The APSI library comes with example command-line programs implementing a sender and a receiver.
+The PSMT library comes with example command-line programs implementing a sender and a receiver.
 In this section we describe how to run these programs.
 
 ### Common Arguments
@@ -177,7 +175,7 @@ Note that the receiver may already know the parameters, and the parameter reques
 | `-b` | The size of senders' sets in bits |
 
 
-### Test Data
+### Test
 
 The library contains a Python script [caoe-cerberus-query/utilities/gen_emails.py](caoe-cerberus-query/utilities/gen_emails.py) that can be used to easily create test data for the CLI.
 Running the script is easy; it accepts various optional parameters as follows:
@@ -205,4 +203,4 @@ INTERSECTION=1 EXECUTIVE=1 DO_HASHING=0 TYPE=CKKS ONE_SITE=1 ./demo_aug31.sh
 
 
 ## Contributing
-For contributing to APSI, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+For contributing to PSMT, please see [CONTRIBUTING.md](CONTRIBUTING.md).
