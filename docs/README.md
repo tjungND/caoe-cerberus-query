@@ -1,14 +1,14 @@
 # PSMT: C++ library for Private Segmented Membership Test
 
 - [Introduction](#introduction)
-  - [Private Segmented Membership Test](#Private-Segmented-Membership-Test-(PMT))
+  - [Private Segmented Membership Test](#private-segmented-membership-test-(psmt))
 - [How PSMT Works](#how-psmt-works)
   - [Homomorphic Encryption](#homomorphic-encryption)
   - [Theory](#theory)
 - [Using PSMT](#using-psmt)
   - [Receiver](#receiver)
-  - [Sender](#Sender(s))
-  - [Domain Extension Polynomial (DEP) parameters](#Domain-Extension-Polynomial-(DEP)-parameters)
+  - [Sender](#sender(s))
+  - [Domain Extension Polynomial (DEP) parameters](#domain-extension-polynomial-(dep)-parameters)
 - [Building PSMT](#building-psmt)
 - [Command-Line Interface (CLI)](#command-line-interface-(cli))
   - [Common Arguments](#common-arguments)
@@ -27,8 +27,8 @@ We use the terminology *sender* and *receiver* to denote the two parties in the 
 
 ### Homomorphic Encryption
 
-PSMT uses a encryption technology known as homomorphic encryption that allows computations to be performed directly on encrypted data.
-Results of such computations remain encrypted and can be only decrypted by the owner of the secret key.
+PSMT uses an encryption technology known as homomorphic encryption that allows computations to be performed directly on encrypted data.
+The results of such computations remain encrypted and can be only decrypted by the owner of the secret key.
 There are many homomorphic encryption schemes with different properties; PSMT uses the CKKS encryption scheme implemented in the [OpenFHE](https://github.com/openfheorg) library.
 
 #### Computation on Encrypted Data
@@ -39,17 +39,17 @@ These computations can be done in a *batched* manner, where a single OpenFHE cip
 #### Noise Budget
 
 The capacity of computation that can be done on encrypted data is tracked by *noise budget* that each ciphertext carries.
-A freshly encrypted ciphertext has a certain amount of noise budget which is then consumed by computations &ndash; particularly multiplications.
+A freshly encrypted ciphertext has a certain amount of noise budget, which is then consumed by computations &ndash; particularly multiplications.
 A ciphertext can no longer be decrypted correctly once its noise budget is fully consumed.
 To support computations of larger multiplicative depths, it is necessary to start with a larger initial noise budget, which can be done through appropriate changes to the *encryption parameters*.
 
 #### Encryption Parameters
 
-Choosing the homomorphic encryption schemes parameters is important for obtaining the best performance for the encrypted application, while maintaining the desired level of security. We use 128-bit security level for PSMT and have OpenFHE automatically select the other parameters.
+Choosing the homomorphic encryption scheme parameters is important for obtaining the best performance for the encrypted application while maintaining the desired level of security. We use a 128-bit security level for PSMT and have OpenFHE automatically select the other parameters.
 Thus, PSMT does not require the user to explicitly provide the OpenFHE encryption parameters.
 We describe some of the important parameters here briefly.
 
-`ringDim` is the ring dimension N of the scheme : the ring is Z_Q[x] / (X^N+1).
+`ringDim` is the ring dimension N of the scheme: the ring is Z_Q[x] / (X^N+1).
 
 `poly_modulus_degree` is a positive power-of-two integer that determines how many integers modulo `plain_modulus` can be encoded into a single OpenFHE plaintext; typical values are 2048, 4096, 8192, and 16384.
 `poly_modulus_degree` also affects the security level of the encryption scheme: if other parameters remain the same, a bigger `poly_modulus_degree` is more secure.
@@ -59,11 +59,11 @@ We describe some of the important parameters here briefly.
 - q_i have same number of bits and is equal to scalingModSize
 - the prime q' is not explicitly given, but it is used internally in CKKS.
 
-`scalingTechnique` is the rescaling switching technique used for CKKS. OpenFHE has techniques such as FLEXIBLEAUTOEXT, FIXEDMANUAL, FLEXIBLEAUTO, etc. for this function.
+`scalingTechnique` is the rescaling switching technique used for CKKS. OpenFHE has techniques such as FLEXIBLEAUTOEXT, FIXEDMANUAL, FLEXIBLEAUTO, etc., for this function.
 
 `batchSize` is the maximum batch size of messages to be packed in encoding (number of slots).
 
-`multiplicativeDepth` is the maximum number of multiplication we can perform before bootstrapping.
+`multiplicativeDepth` is the maximum number of multiplications we can perform before bootstrapping.
 
 
 ### Theory
@@ -72,21 +72,21 @@ We describe some of the important parameters here briefly.
 
 The basic idea of PSMT is as follows.
 Suppose a number of "l" senders holds a set `X` of items &ndash; each a floating point modulo `plain_modulus` &ndash; and the receiver holds a single item `y` &ndash; also a floating point modulo `plain_modulus`. The senders use a public key to encrypt `X` and obtain `c_x`.
-The receiver can choose a secret key, encrypts `y` to obtain a ciphertext `c_y = Enc(y)`, and sends it over to the senders.
-In case, threshold FHE is used, senders and receiver each obtain a share of the secret key and use the public key to encrypt their sets.
+The receiver can choose a secret key, encrypt `y` to obtain a ciphertext `c_y = Enc(y)`, and send it over to the senders.
+In case threshold FHE is used, senders and receivers each obtain a share of the secret key and use the public key to encrypt their sets.
 
 The senders can now evaluate the non-linear *polynomial* `M(c_y, c_x)_i = 1 - tanh^2(c_y - c_x)_i`.
-Due to the capabilities of homomorphic encryption, `M(c_y, c_x)_i` will hold an encryption of `1 - tanh^2(c_y - c_x)_i` which is non-zero if `y` matches one of the sender's sets' items and zero otherwise. If threshold FHE is used, senders partially decrypt their results can send them to the receiver for final decryption. The receiver will add all the `M(c_y, c_x)_i` values and if the final result crosses a threshold value that will be the minimum non-zero value mapped by the non-linear polynomial, receiver confirms an intersection, otherwise not.
-The senders who performs computation on `c_x` &ndash; encrypted data &ndash; will not be able to know this result due to the secret key being held only by the receiver. In case, threshold FHE is used, senders will not be able to know this result as one of the secret key shares is being held by the receiver.
+Due to the capabilities of homomorphic encryption, `M(c_y, c_x)_i` will hold an encryption of `1 - tanh^2(c_y - c_x)_i`, which is non-zero if `y` matches one of the sender's sets' items and zero otherwise. If threshold FHE is used, senders partially decrypt their results can send them to the receiver for final decryption. The receiver will add all the `M(c_y, c_x)_i` values and if the final result crosses a threshold value, that will be the minimum non-zero value mapped by the non-linear polynomial, the receiver confirms an intersection; otherwise, not.
+The senders who perform computation on `c_x` &ndash; encrypted data &ndash; will not be able to know this result due to the secret key being held only by the receiver. In case threshold FHE is used, senders will not be able to know this result as one of the secret key shares is being held by the receiver.
 
-One problem with the above is that the function `1 - tanh^2(x)` is non-linear can only be computed using linear operations (additions and multiplications) in FHE. One solution is to use the polynomial approximation for computing this function but the computation for such approximation has an enormously high multiplicative depth and requires a very high-degree polynomial for approximation.
-It is not common for the senders to have millions items which increases the domain size of the input and eventually the computation needed for approximation.
-This would require a very high initial noise budget and subsequently very large encryption parameters with an impossibly large computational overhead.
+One problem with the above is that the function `1 - tanh^2(x)` is non-linear and can only be computed using linear operations (additions and multiplications) in FHE. One solution is to use the polynomial approximation for computing this function, but the computation for such approximation has an enormously high multiplicative depth and requires a very high-degree polynomial for approximation.
+It is not common for the senders to have millions items, which increases the domain size of the input and, eventually the computation needed for approximation.
+This would require a very high initial noise budget and, subsequently very large encryption parameters with an impossibly large computational overhead.
 
 #### Lowering the Depth
 
 The first step towards making this naive idea practical is to figure out ways of lowering the multiplicative depth of the computation.
-First, for the polynomial approximation to work with enough accuracy, we require a high degree polynomial which can handle a large domain interval. We effectively shrink this domain to a smaller interval using [Domain Extension Polynomials (DEP)](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9813691). DEPs enable low-degree polynomial approximation on large intervals. DEPs effectively shrink a large interval `[−𝐿^n 𝑅, 𝐿^n 𝑅]` to a smaller subinterval `[−𝑅, 𝑅]` such that the property of the non-linear polynomial around zero in the smaller subinterval is preserved. The polynomial approximation technique we use after employing DEP is called Chebyshev approximation. `OpenFHE` has a built in method for using Chebyshev approximation. Some guidelines for choosing parameters for polynomial approximation can be found at `https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md`.
+First, for the polynomial approximation to work with enough accuracy, we require a high-degree polynomial that can handle a large domain interval. We effectively shrink this domain to a smaller interval using [Domain Extension Polynomials (DEP)](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9813691). DEPs enable low-degree polynomial approximation on large intervals. DEPs effectively shrink a large interval `[−𝐿^n 𝑅, 𝐿^n 𝑅]` to a smaller subinterval `[−𝑅, 𝑅]` such that the property of the non-linear polynomial around zero in the smaller subinterval is preserved. The polynomial approximation technique we use after employing DEP is called Chebyshev approximation. `OpenFHE` has a built-in method for using Chebyshev approximation. Some guidelines for choosing parameters for polynomial approximation can be found at `https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md`.
 
 The next step is to use batching in OpenFHE.
 Per each of the `S` parts described above, the sender can further split its set into `poly_modulus_degree` many equally sized parts, and the receiver can batch-encrypt its item into a single batched query ciphertext `Q = Enc([ X, X, ..., X ])`.
@@ -95,10 +95,10 @@ Now, the sender can evaluate vectorized versions of the matching polynomials on 
 
 #### False Positives
 
-In some cases the protocol may result in a false positive match.
-For example, a bad approximation accuracy of non-linear function can cause the result to contain non-zero values even in cases where `y` does not match one of the sender's sets' items.
+In some cases, the protocol may result in a false positive match.
+For example, a bad approximation accuracy of a non-linear function can cause the result to contain non-zero values even in cases where `y` does not match one of the sender's sets' items.
 
-There are multiple ways of preventing this from happening. We used a technique involving homomorphic squaring and scaling. First, we squared all the values such that the non-intersection values are mapped to smaller and smaller values (since they are in the interval `[0,1)`). Then, we scale those value using a scaling factor, to increase the difference between values that were meant to be mapped to non-zero and zero values. Now, squaring these values again, would increase the difference further.
+There are multiple ways of preventing this from happening. We used a technique involving homomorphic squaring and scaling. First, we squared all the values such that the non-intersection values are mapped to smaller and smaller values (since they are in the interval `[0,1)`). Then, we scale those values using a scaling factor to increase the difference between values that were meant to be mapped to non-zero and zero values. Now, squaring these values again would increase the difference further.
 
 
 ## Using PSMT
@@ -118,12 +118,11 @@ For simplicity, we use `Sender` to denote `sender.cpp`.
 
 ### Domain Extension Polynomial (DEP) parameters
 
-To handle senders' sets of different sizes DEP parameters needs to be tuned such that we have the minimum computation required for PSMT. There are three parameters namely, `L`, `R` and `n`. These parameters need to satisfy the following property: `L^n * R ` must be greater than or equal to the senders' set size (i.e., the size of all the sender's set combined). More information in choosing these parameters can be found at [Link to the paper](link to the paper).
+To handle senders' sets of different sizes, DEP parameters need to be tuned such that we have the minimum computation required for PSMT. There are three parameters namely, `L`, `R`, and `n`. These parameters need to satisfy the following property: `L^n * R ` must be greater than or equal to the senders' set size (i.e., the size of all the sender's sets combined). More information on choosing these parameters can be found at [Link to the paper](link to the paper).
 
 
 ## Building PSMT
 
-To simply use the PMST library, we recommend to build and install PSMT with [vcpkg](https://github.com/microsoft/vcpkg).
 To use the example command-line interface or run tests, follow the guide below to build and [install PSMT manually](#building-and-installing-psmt-manually).
 
 ### Requirements
@@ -139,11 +138,11 @@ PSMT has multiple external dependencies that must be pre-installed. They are lis
 ## Command-Line Interface (CLI)
 
 The PSMT library comes with example command-line programs implementing a sender and a receiver.
-In this section we describe how to run these programs.
+In this section, we describe how to run these programs.
 
 ### Common Arguments
 
-The following optional arguments are common both to the sender and the receiver applications. They help setup the encryption parameters, cryptocontext and keys.
+The following optional arguments are common to both the sender and the receiver applications. They help setup the encryption parameters, cryptocontext, and keys.
 
 | Parameter | Explanation |
 |-----------|-------------|
