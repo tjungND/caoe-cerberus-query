@@ -105,14 +105,14 @@ There are multiple ways of preventing this from happening. We used a technique i
 
 ### Receiver
 
-The `receiver.cpp` file implements all necessary functions to create a receiver and process any responses received.
+The `receiver.cpp` file is the driver for the receiver, and all necessary functions are implemented in the `include` folder.
 For simplicity, we use `Receiver` to denote `receiver.cpp`.
 
 `Receiver` includes the functionality to write to the file system its query ciphertext. After the senders compute the polynomial approximations, the receiver reads the result and decrypts it to check if it crosses a pre-determined threshold value. The threshold value is communicated to the receiver during parameter setting.
 
 ### Sender(s)
 
-The `sender.cpp` class implements all necessary functions to process and respond to a receiver query.
+The `sender.cpp` file is the driver for the sender, and it processes and responds to a receiver query.
 For simplicity, we use `Sender` to denote `sender.cpp`.
 `Sender` batches the query into a single ciphertext and performs the polynomial approximation on the batched ciphertext.
 
@@ -137,12 +137,12 @@ PSMT has multiple external dependencies that must be pre-installed. They are lis
 
 ## Command-Line Interface (CLI)
 
-The PSMT library comes with example command-line programs implementing a sender and a receiver.
-In this section, we describe how to run these programs.
+The PSMT library comes with example command-line programs implementing a sender and a receiver. 
+In this section, we describe how to run these programs. We store all the setup files such as cryptocontexts, and keys in file by default.
 
 ### Common Arguments
 
-The following optional arguments are common to both the sender and the receiver applications. They help setup the encryption parameters, cryptocontext, and keys.
+The following optional arguments are common to both the sender and the receiver applications. They help set up the encryption parameters, cryptocontext, and keys. 
 
 | Parameter | Explanation |
 |-----------|-------------|
