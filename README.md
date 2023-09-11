@@ -1,9 +1,9 @@
 # caoe-cerberus
 
 ## System and Dependencies
-Our solutions are designed for modern Ubuntu distributions, though other Linux distributions should also work. Requirements are a modern C++ toolchain (C++17 and GCC 9 or later), OpenMP, and [OpenFHE](https://github.com/openfheorg/openfhe-development). OpenFHE should be installed to the default system directory (`/usr/local/`).
+Our solutions are designed for modern Ubuntu distributions, though other Linux distributions should also work. Requirements are a modern C++ toolchain (C++17 and GCC 9 or later), OpenMP, and [OpenFHE](https://github.com/openfheorg/openfhe-development). OpenFHE should be installed to the default system directory (`/usr/local/`). 
 
-Developers should also have clang-format, cpplint, and black.
+Developers should also have clang-format, cpplint, and black. For further information about how to run the sender and receiver programs, look into the `docs` folder.
 
 ## Workflow
 Developers must work on separate Git branches and submit merge requests on Gitlab. Before submission, make sure you've used all of clang-format, cpplint, and black on code as applicable, and also have checked compilation with -Wall, -Werror, -pedantic. (-pedantic may not be applicable in many cases, e.g., code using OpenFHE or 128-bit integral types.)
@@ -27,7 +27,6 @@ Not all of these may be currently present.
 - For C++, use smart pointers and STL outside the critical segments of code, and use them in critical sections if possible
 - Use 2-space indentations.
 
-#### For further information about how to run the sender and receiver programs, look into the `docs` folder.
 - No “interactive” interfaces - this violates [Rule 2](https://en.wikipedia.org/wiki/Unix_philosophy).
 - Programs should be written for modern Ubuntu, unless specified otherwise.
 - Use C++17, but avoid excessive metaprogramming, template hell, etc.
