@@ -26,6 +26,8 @@ Not all of these may be currently present.
 - For C++, use all available compiler warnings and standardization, e.g., `-Wall -Werror -pedantic -std=c++17`
 - For C++, use smart pointers and STL outside the critical segments of code, and use them in critical sections if possible
 - Use 2-space indentations.
+
+  For further information about how to run the sender and receiver programs, look into the `docs` folder.
 - No “interactive” interfaces - this violates [Rule 2](https://en.wikipedia.org/wiki/Unix_philosophy).
 - Programs should be written for modern Ubuntu, unless specified otherwise.
 - Use C++17, but avoid excessive metaprogramming, template hell, etc.
