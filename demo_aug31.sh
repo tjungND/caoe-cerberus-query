@@ -14,6 +14,8 @@
 #Parameters for multiparty functionality
 : "${NUM_PARTIES:=8}"
 : "${NUM_KEY_SHARES:=2}"
+: "${SENDER_BITS:=8}"
+# SENDER_BITS has to be one of these: 8, 10, 13, 15, 20
 
 BASH_FLAGS=""
 if [ $EXECUTIVE -eq "0" ]; then
@@ -44,8 +46,6 @@ if [ $SETUP -eq "1" ]; then
   fi
 fi  
 
-# SENDER_BITS has to be one of these: 8, 10, 13, 15, 20
-SENDER_BITS=8
 
 NUM_SENDER_INPUTS=$(echo "2^$SENDER_BITS" | bc) #Implicit: inputs per region; this will be divided among parties and partitions
 DEPTH=23
