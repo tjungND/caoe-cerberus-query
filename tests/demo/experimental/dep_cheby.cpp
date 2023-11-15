@@ -84,6 +84,35 @@ DEP1(const double L, const double R, const int n,
 
 }
 
+//     // algorithm 2 has higher number of homomorphic evaluations than algorithm 1 for DEP. We stick to using algorithm 1 for now
+
+// Ciphertext<DCRTPoly>
+// DEP2(const double L, const double R, const int n,
+//                   const Ciphertext<DCRTPoly> &x,
+//                   const CryptoContext<DCRTPoly> &cryptoContext) {
+//    assert(n >= 1);
+//    //assert(x <= std::pow(L, n)*R and x >= -(std::pow(L,n)*R));
+//
+//    double y = x;
+//
+//     for (int i = n - 1; i >= 0; --i) {
+//         assert(i >= 0);
+//         auto y2 = cryptoContext->EvalSquare(y);
+//         auto y3 = cryptoContext->EvalMult(y, y2);
+//         auto temp_y = cryptoContext->EvalMult((4.0 / (R * R * 27 * pow(L, 2 * i))), y3);
+//         cryptoContext->EvalSubInPlace(y, temp_y);
+//     }
+//
+//     cryptoContext->EvalMultInPlace(y, 1/R);
+//
+//     y /= R;
+//     y += (4.0 / 27.0) * ((L * L * (pow(L, n * 2) - 1)) / ((L * L - 1) * pow(L, 2 * n))) * (pow(y, 3) - pow(y, 5));
+//     return P(R * y);
+//
+//    return y;
+//
+// }
+
 
 int main(int argc, char* argv[]) {
     EvalFunctionExample();
@@ -99,21 +128,22 @@ void EvalFunctionExample() {
 
     //parameters.SetRingDim(1 << 15);
 
-    double L = 2.5;
+    double L = 2.59;//2.598076211;
     int n = 9;
-    double R = 150;
+    double R = 6400;
 
-    uint32_t multDepth = 48;
-    unsigned int poly_approx_deg = 75;
-    uint32_t batchSize = 32768;
+    uint32_t multDepth = 63; // 24 depth need for L=2.5, n=6, R=20 for DEP, then for deg 13 Cheby add another 6 dedpth. To square after Cheby add more
+    unsigned int poly_approx_deg = 247;
+    //uint32_t batchSize = 16;
 
-    long low_bound = -R;
-    long high_bound = R;
+    double low_bound = -R;
+    double high_bound = R;
+    int setSize=33554430;
 
     parameters.SetSecurityLevel(HEStd_128_classic);
     parameters.SetMultiplicativeDepth(multDepth);
-    parameters.SetScalingModSize(80);
-    parameters.SetBatchSize(batchSize);
+    parameters.SetScalingModSize(45);
+    parameters.SetBatchSize(32768);
 
 
     CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);
@@ -128,78 +158,110 @@ void EvalFunctionExample() {
     cc->EvalMultKeyGen(keyPair.secretKey);
     auto pk = keyPair.publicKey;
 
-    uint32_t batchSize1 = parameters.GetBatchSize();
-    std::cout << "batchSize: " << batchSize1 << std::endl;
+    unsigned int batchSize = cc->GetEncodingParams()->GetBatchSize();
+    std::cout << "batchSize: " << batchSize << std::endl;
+
+    //std::cout << "parameters: " << parameters << std::endl;
 
     std::cout << "Range is +-" << R * std::pow(L, n) << std::endl;
 
     std::cout << "scaling mod size: " << parameters.GetScalingModSize() << std::endl;
     std::cout << "ring dimension: " << cc->GetRingDimension() << std::endl;
     std::cout << "noise estimate: " << parameters.GetNoiseEstimate() << std::endl;
-    std::cout << "multiplicative depth: " << multDepth << std::endl;
+    std::cout << "multiplicative depth: " << parameters.GetMultiplicativeDepth() << std::endl;
     std::cout << "polynomial approx degree for chebyshev: " << poly_approx_deg << std::endl;
 
-
-    // std::vector<double> test_vals = {
-    //     (511758),
-    //     (19588.5),
-    //     (500),
-    //     (10.5),
-    //     (9),
-    //     (5),
-    //     (4),
-    //     (0.0),
-    //     (4),
-    //     (5),
-    //     (9),
-    //     (10),
-    //     (-20.5),
-    //     (-511758)
-    // };
+    std::cout << "Noise level: " << parameters.GetNoiseEstimate() << std::endl;
 
     std::vector<double> test_vals;
 
     // Generate values from -99000 to -3
-    for (double i = -572204; i <= -3; ++i) {
+    for (double i = -setSize; i <= -1; ++i) {
         test_vals.push_back(i);
+        //test_vals2.push_back(i);
     }
 
     // Generate values from 3 to 99000
-    for (double i = 4; i <= 572204; ++i) {
+    for (double i = 1; i <= setSize; ++i) {
         test_vals.push_back(i);
+        //test_vals2.push_back(i);
     }
     // Shuffle the elements randomly
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(test_vals.begin(), test_vals.end(), g);
+    //std::shuffle(test_vals2.begin(), test_vals2.end(), g);
 
     // Resize the test_vals to 32768, keeping the first 32768 elements
-    if (test_vals.size() > 32768) {
-        test_vals.resize(32767);
+    if (test_vals.size() > setSize) {
+        test_vals.resize(32763);
+      //  test_vals2.resize(8191);
     }
 
     test_vals.push_back(0.0);
+    test_vals.push_back(1);
+    //test_vals.push_back(4);
+    test_vals.push_back(2);
+    test_vals.push_back(3);
+    test_vals.push_back(3);
+
+  //  test_vals2.push_back(0.0);
 
     Ciphertext<DCRTPoly> test_ctext;
+    //Ciphertext<DCRTPoly> test_ctext2;
     Plaintext pt3 = cc->MakeCKKSPackedPlaintext(test_vals);
     test_ctext = cc->Encrypt(pk, pt3);
 
+    //Plaintext pt4 = cc->MakeCKKSPackedPlaintext(test_vals2);
+    //test_ctext2 = cc->Encrypt(pk, pt3);
+
     std::cout << "precision bits before encryption: " << pt3->GetLogPrecision() << std::endl;
 
-    auto derivative_htan_func = [](double x) -> double {  return 1 - tanh(pow(x,2)); };
+    auto derivative_htan_func = [](double x) -> double {  return (1 - tanh(pow(10.0*x,2))); };
+    // auto sigmoid = [](double x) -> double {
+    // return 20 * (0.25 - pow((1 / (1 + exp(-20 * x)) - 0.5), 2));
+    // };
+
+    std::vector<Ciphertext<DCRTPoly>> sender_vals;
+    sender_vals.push_back(test_ctext);
+  //  sender_vals.push_back(test_ctext2);
 
     Ciphertext<DCRTPoly> result;
     steady_clock::time_point start, end;
     start = steady_clock::now();
 
+    //for (size_t i = 0; i < sender_vals.size(); i++) {
+
+
     result =  DEP1(L, R, n, test_ctext, cc);
-    cc->EvalSquareInPlace(result);
+    //cc->EvalSquareInPlace(result);
+    //result =  DEP1(L, 57, 1, result, cc);
+    // std::cout << "Number of levels remaining before chebyshev: " << multDepth - result->GetLevel() << std::endl
+    //           << std::endl;
+    // ------------------------- uncomment from here
+    result = cc->EvalChebyshevFunction(derivative_htan_func, result, low_bound, high_bound, poly_approx_deg);
 
-    result = cc->EvalChebyshevFunction(derivative_htan_func, result, 0, 22500, poly_approx_deg);
+    size_t j=12;
+    size_t k=4;
+     // creating more difference in the zero and non-zero values
+    for (size_t m = 0; m < j; m++) {
+      cc->EvalSquareInPlace(result);
+    }
+    cc->EvalMultInPlace(result, 2.7);
+    for (size_t m = 0; m < k; m++) {
+       cc->EvalSquareInPlace(result);
+     }
+    // cc->EvalSquareInPlace(result);
+   
 
-    cc->EvalSquareInPlace(result); // creating more difference in the zero and non-zero values
+    std::cout << "Number of levels remaining after chebyshev: " << multDepth - result->GetLevel() << std::endl
+              << std::endl;
 
-    cc->EvalMultInPlace(result, 10000000000); // scaling -> can be omitted
+    //}
+
+    //result = cc->EvalAddManyInPlace(sender_vals);
+    // cc->EvalSquareInPlace(result);
+    // cc->EvalMultInPlace(result, 1000); // scaling -> can be omitted
 
     end = steady_clock::now();
     long double d = duration_cast<measure_typ>(end - start).count();
@@ -213,19 +275,21 @@ void EvalFunctionExample() {
 
     double result0 = 0.0;
     std::cout << "\n";
-    for (size_t i = 0; i < test_vals.size()+1; i++) {
+    for (size_t i = 0; i < test_vals.size(); i++) {
     // std::cout << "Output after Chebyshev, test_vals[" << i
     //           << "]:" << test_vals[i] << ", result after = vec_result[" << i << "]:" << vec_result2[i] << std::endl;
 
               // Accumulate the results by alternating the signs
-        if (i % 2 == 0) {
+        //if (i % 2 == 0) {
             result0 += vec_result2[i];
-        } else {
-            result0 -= vec_result2[i];
-        }
+        //} else {
+        //    result0 -= vec_result2[i];
+        //}
+
+        //result0 += vec_result2[i];
     }
 
-     std::cout << "Final result after accumulating with alternating signs: " << result0 << std::endl;
+     std::cout << "Final result after accumulating: " << result0 << std::endl;
 
      std::vector<std::pair<double, double>> sorted_pairs;
 
