@@ -33,3 +33,5 @@ Not all of these may be currently present.
 - Your Python code and version should be 3.8 or as late as possible. Don’t use Python 2.
 - For shell scripts, use Bash.
 - Time critical portions of code.
+
+:warning: Important Warning: This code is designed strictly for academic and research purposes. It has NOT undergone scrutiny by security professionals. No part of this code should be used in any real-world or production setting.
