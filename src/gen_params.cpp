@@ -89,14 +89,40 @@ int main(int argc, char **argv) {
   // Generate FHE parameters and setup the context
   if (schemeType == CKKSRNS_SCHEME) {
     CCParams<CryptoContextCKKSRNS> parameters;
+
+    parameters.SetExecutionMode(EXEC_EVALUATION);
     parameters.SetMultiplicativeDepth(computationDepth);
-    parameters.SetScalingModSize(85); //NB this is hardcoded
-    // parameters.SetMaxRelinSkDeg(3);
-    parameters.SetSecurityLevel(HEStd_128_classic);
-    parameters.SetNumAdversarialQueries(0);
-    parameters.SetStatisticalSecurity(0);
+
+    parameters.SetSecurityLevel(HEStd_NotSet);
+    parameters.SetRingDim(1 << 16);
+   // parameters.SetScalingModSize(45);
+
+
+    
+    int alpha = 1024;
+    int s = 36;
+    parameters.SetNumAdversarialQueries(alpha);
+    parameters.SetStatisticalSecurity(s);
+    //parameters.SetThresholdNumOfParties(20);
+
+    // sigma (noise bits) = underroot(24 * n * alpha) * 2^(s/2), n is the ring-dimension of RLWE
+    double noise = 34;  // originally 34, highest 42
+    parameters.SetNoiseEstimate(noise);
+
+    // We can set our desired precision for 128-bit CKKS only. For NATIVE_SIZE=64, we ignore this parameter.
+    parameters.SetDesiredPrecision(10);
+    parameters.SetDecryptionNoiseMode(NOISE_FLOODING_DECRYPT);
 
     cryptoContext = GenCryptoContext(parameters);
+
+    std::cerr << std::endl;
+    std::cerr << "CKKS parameters :::::::: " << parameters << std::endl;
+    std::cerr << std::endl;
+
+    std::cerr << "p = " << cryptoContext->GetCryptoParameters()->GetPlaintextModulus() << std::endl;
+    std::cerr << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder() / 2 << std::endl;
+    std::cerr << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble())
+              << std::endl;
 
   } else if (schemeType == BFVRNS_SCHEME) {
     CCParams<CryptoContextBFVRNS> parameters;
