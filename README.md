@@ -21,7 +21,7 @@ Not all of these may be currently present.
 
 ## General Development Guidelines
 - Header-only libraries are strongly preferred.
-- Use GNU getopt for taking input flags, unless there’s a good reason not to.
+- Use GNU getopt for taking input flags.
 - clang-format and cpplint must be run on all C++ code. black must be run on all Python code.
 - For C++, use all available compiler warnings and standardization, e.g., `-Wall -Werror -pedantic -std=c++17`
 - For C++, use smart pointers and STL outside the critical segments of code, and use them in critical sections if possible
@@ -29,8 +29,8 @@ Not all of these may be currently present.
 
 - No “interactive” interfaces - this violates [Rule 2](https://en.wikipedia.org/wiki/Unix_philosophy).
 - Programs should be written for modern Ubuntu, unless specified otherwise.
-- Use C++17, but avoid excessive metaprogramming, template hell, etc.
-- Your Python code and version should be 3.8 or as late as possible. Don’t use Python 2.
+- Use C++17, but avoid excessive metaprogramming, templating, etc.
+- Python code and version should be supported for 3.8 or higher.
 - For shell scripts, use Bash.
 - Time critical portions of code.
 
