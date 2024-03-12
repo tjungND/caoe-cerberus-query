@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     parameters.SetExecutionMode(EXEC_EVALUATION);
     parameters.SetMultiplicativeDepth(computationDepth);
 
-    parameters.SetSecurityLevel(HEStd_NotSet);
+    parameters.SetSecurityLevel(HEStd_128_classic);
     parameters.SetRingDim(1 << 16);
    // parameters.SetScalingModSize(45);
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     parameters.SetStatisticalSecurity(s);
     //parameters.SetThresholdNumOfParties(20);
 
-    // sigma (noise bits) = underroot(24 * n * alpha) * 2^(s/2), n is the ring-dimension of RLWE
+    // sigma (noise bits) = underroot(24 * N * alpha) * 2^(s/2), N is the ring-dimension of RLWE
     double noise = 34;  // originally 34, highest 42
     parameters.SetNoiseEstimate(noise);
 
