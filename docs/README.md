@@ -1,4 +1,4 @@
-# PSMT: C++ library for Private Segmented Membership Test
+# PSMT: Private Segmented Membership Test
 
 - [Introduction](#introduction)
   - [Private Segmented Membership Test](#private-segmented-membership-test-(psmt))
