@@ -196,7 +196,7 @@ Running the script is easy; it accepts various optional parameters as follows:
 
 
 ```
-INTERSECTION=1 EXECUTIVE=1 DO_HASHING=0 TYPE=CKKS ONE_SITE=1 ./demo_aug31.sh
+INTERSECTION=1 EXECUTIVE=1 DO_HASHING=0 TYPE=CKKS ONE_SITE=1 ./demo_test.sh
 ```
 
 
