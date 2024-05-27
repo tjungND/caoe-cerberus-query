@@ -8,6 +8,8 @@
 #include <iterator>
 #include <numeric>
 #include <vector>
+#include <chrono>
+
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -213,11 +215,29 @@ query_sender_batched(std::vector<Ciphertext<DCRTPoly>> &sender_vals,
 
 
   switch (sender_set_bits) {
+    case 7:    // depth =21
+      L = 2.50;
+      R = 21;
+      n = 2;
+      j=3;
+      k=3;
+      poly_approx_deg=27;
+      break;
+
     case 8:
       L = 2.56;
       R = 16;
       n = 3;
       j=1;
+      k=3;
+      poly_approx_deg=27;
+      break;
+
+    case 9:    // depth = 26
+      L = 2.50;
+      R = 33;
+      n = 3;
+      j=3;
       k=3;
       poly_approx_deg=27;
       break;
@@ -258,10 +278,71 @@ query_sender_batched(std::vector<Ciphertext<DCRTPoly>> &sender_vals,
       poly_approx_deg=247;
       break;
 
+    case 21:  // depth 54, p =2.7, 2824 for intersection and 0.74 for non-intersection, 111MB query ctext -$ du -sh *
+      L = 2.59;
+      R = 400;
+      n = 9;
+      j=4;
+      k=3;
+      poly_approx_deg=247;
+      break;
+
+    case 22:   // depth 56, p=2.7, 2824.29 for intersection and 0.80 for non-intersection, 115MB
+      L = 2.59;
+      R = 800;
+      n = 9;
+      j=6;
+      k=3;
+      poly_approx_deg=247;
+      break;
+
+    case 23:   // depth 58, p=2.7, 2824 for intersection and 0.83 for non-intersection
+      L = 2.59;
+      R = 1600;
+      n = 9;
+      j=8;
+      k=3;
+      poly_approx_deg=247;
+      break;
+
+    case 24:   // depth 60, p=2.7, 2824.2 for intersection and 0.83269 for non-intersection
+      L = 2.59;
+      R = 3200;
+      n = 9;
+      j=10;
+      k=3;
+      poly_approx_deg=247;
+      break;
+
+      case 25:   // depth 62, p=2.7, 2823.92 for intersection and 0.827851 for non-intersection
+      L = 2.59;
+      R = 6400;
+      n = 9;
+      j=12;
+      k=3;
+      poly_approx_deg=247;
+      break;
+
     default:
-    cout << "Provide one of these sender set size bits: 8, 10, 13, 15, 20.";
+    cout << "Provide one of these sender set size bits: 8, 10, 13, 15, 20, 21, 22, 23, 24, 25.";
     exit(1);
   }
+
+/*
+// Testing for plain approximation computation
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+    sender_vals[0] = cryptoContext->EvalChebyshevFunction(
+        derivative_htan_func, sender_vals[0], -1000, 1000, 1000);
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+
+     std::cerr << "done.\n\t\tTesting for cheby...";
+    
+
+    std::cerr << "Time taken by the cheby testing: " << duration.count() << " microseconds" << std::endl;
+*/
 
   /*
   const double nn = 1;
