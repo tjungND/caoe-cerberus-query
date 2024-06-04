@@ -2,6 +2,7 @@
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
+#include <cmath>
 #include <openfhe.h>
 
 // header files needed for serialization
@@ -97,13 +98,13 @@ int main(int argc, char **argv) {
     parameters.SetRingDim(1 << 16);
    // parameters.SetScalingModSize(45);
 
-
+// the noise flooding presets are only for OpenFHE installed with 128-bit native size. For 64-bit native size, use s and noise as 30.
     
     int alpha = 1024;
     int s = 36;
     parameters.SetNumAdversarialQueries(alpha);
     parameters.SetStatisticalSecurity(s);
-    //parameters.SetThresholdNumOfParties(20);
+    parameters.SetThresholdNumOfParties(ceil(num_parties/2));
 
     // sigma (noise bits) = underroot(24 * N * alpha) * 2^(s/2), N is the ring-dimension of RLWE
     double noise = 34;  // originally 34, highest 42
@@ -128,7 +129,8 @@ int main(int argc, char **argv) {
     CCParams<CryptoContextBFVRNS> parameters;
     parameters.SetMultiplicativeDepth(computationDepth);
     parameters.SetSecurityLevel(HEStd_128_classic);
-    parameters.SetPlaintextModulus(65537); // was 65537
+    parameters.SetPlaintextModulus(65537); 
+    parameters.SetThresholdNumOfParties(ceil(num_parties/2));
 
     cryptoContext = GenCryptoContext(parameters);
   } else {
