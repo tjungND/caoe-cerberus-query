@@ -9,12 +9,13 @@
 : "${DO_HASHING:=0}"
 : "${PARALLEL:=0}"
 : "${ONE_SITE:=1}"
-: "${INTERSECTION:=0}"
+: "${INTERSECTION:=1}"
 : "${TYPE:=CKKS}"
 #Parameters for multiparty functionality
-: "${NUM_PARTIES:=8}"
-: "${NUM_KEY_SHARES:=2}"
-: "${SENDER_BITS:=8}"
+: "${NUM_KEY_SHARES:=8}"
+: "${SENDER_BITS=10}"
+: "${DEPTH=10}"
+
 # SENDER_BITS has to be one of these: 8, 10, 13, 15, 20
 
 BASH_FLAGS=""
@@ -46,9 +47,12 @@ if [ $SETUP -eq "1" ]; then
   fi
 fi  
 
+# SENDER_BITS has to be one of these: 8, 10, 13, 15, 20 : 23, 30, 38, 42, 51
+#SENDER_BITS=13
 
 NUM_SENDER_INPUTS=$(echo "2^$SENDER_BITS" | bc) #Implicit: inputs per region; this will be divided among parties and partitions
-DEPTH=23
+DEPTH=$DEPTH
+PLAIN_MODULUS=NUM_SENDER_INPUTS
 #Input parameters here
 #NUM_SENDER_INPUTS=8192 #Implicit: inputs per region; this will be divided among parties and partitions
 NUM_PARTITIONS=1
@@ -137,9 +141,9 @@ echo $RECEIVER_INPUT > data/receiver.txt
 #PLAIN_RESULT=$($PLAIN -s $PLAIN_INPUT_FILE -r data/receiver.txt)
 #echo Plain result is $PLAIN_RESULT
 
-if [ "$TYPE" = "BFV" ]; then
-  DEPTH=8
-fi
+# if [ "$TYPE" = "BFV" ]; then
+#   DEPTH=8
+# fi
 
 #Parameter files
 PRIVATE_KEY_BASE=data/privatekey_
@@ -170,7 +174,7 @@ fi
 
 #Override the plaintext modulus bits for CKKS
 if [ "$TYPE" = "CKKS" ]; then
-  PLAIN_MODULUS=10000 #TODO hardcoding is bad
+  PLAIN_MODULUS=$PLAIN_MODULUS #TODO hardcoding is bad
   if [[ !$EXECUTIVE ]]; then
     echo "Running SPSI Protocol with $NUM_PARTIES sites! (Selected region $REGION, data split to $NUM_PARTITIONS partitions)"
   fi
@@ -356,6 +360,7 @@ if [ $ONLINE -eq 1 ]; then
 
   #Results are now in data/aggregated_${partition_idx}.dat
   #Partial decryption if we have more than 1 party
+  start_time=`date +%s`
   if (($NUM_KEY_SHARES > 1)); then
     if [ $EXECUTIVE -eq "1" ]; then
       echo "Starting distributed decryption for $NUM_KEY_SHARES key shares..." 
@@ -380,6 +385,10 @@ if [ $ONLINE -eq 1 ]; then
   if [ $EXECUTIVE -eq "1" ]; then
     echo -e "\tFinished distributed decryption for $NUM_KEY_SHARES key shares." 
   fi
+  end_time=`date +%s`
+  RUNTIME=$((end_time-start_time))
+  echo "Execution time for partial decryptions: $RUNTIME seconds"
+
   
 
   #If using APSI, print results for every partition
@@ -394,6 +403,8 @@ if [ $ONLINE -eq 1 ]; then
   if [ $EXECUTIVE -eq "1" ]; then
     echo "Decoding result..."
   fi
+
+  start_time_decoding=`date +%s`
   DECODED_RESULT=0
   if [ "$TYPE" = "BFV" ]; then
     # Variable to store the sum of outputs
@@ -414,6 +425,11 @@ if [ $ONLINE -eq 1 ]; then
     echo -e "\tDecoded result is $DECODED_RESULT"
   fi
 fi #end online computation
+end_time_decoding=`date +%s`
+  RUNTIME_D=$((end_time_decoding-start_time_decoding))
+  echo "Execution time for decoding: $RUNTIME_D seconds"
+
+
 if [ $EXECUTIVE -eq "1" ]; then
   if [ $DECODED_RESULT -ne "0" ]; then
     echo "Query $EMAIL FOUND in database!"
