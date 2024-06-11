@@ -118,7 +118,7 @@ For simplicity, we use `Sender` to denote `sender.cpp`.
 
 ### Domain Extension Polynomial (DEP) parameters
 
-To handle senders' sets of different sizes, DEP parameters need to be tuned such that we have the minimum computation required for PSMT. There are three parameters namely, `L`, `R`, and `n`. These parameters need to satisfy the following property: `L^n * R ` must be greater than or equal to the senders' set size (i.e., the size of all the sender's sets combined). More information on choosing these parameters can be found at [Link to the paper](link to the paper).
+To handle senders' sets of different sizes, DEP parameters need to be tuned such that we have the minimum computation required for PSMT. There are three parameters namely, `L`, `R`, and `n`. These parameters need to satisfy the following property: `L^n * R ` must be greater than or equal to the senders' set size (i.e., the size of all the sender's sets combined). More information on choosing these parameters can be found at [Link to the paper](https://eprint.iacr.org/2024/753.pdf).
 
 
 ## Building PSMT
