@@ -1,4 +1,4 @@
-# PSMT: Private Segmented Membership Test README
+# PSMT: Private Segmented Membership Test 
 
 - [Introduction](#introduction)
   - [Private Segmented Membership Test](#private-segmented-membership-test-(psmt))
