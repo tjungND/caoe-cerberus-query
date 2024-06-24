@@ -144,7 +144,7 @@ In this section, we describe how to run these programs. We store all the setup f
 
 ### Test
 
-The library contains a Python script [caoe-cerberus-query/utilities/gen_emails.py](caoe-cerberus-query/utilities/gen_emails.py) that can be used to easily create test data for the CLI.
+The library contains a Python script [caoe-cerberus-query/utilities/gen_emails.py](caoe-cerberus-query/utilities/gen_emails.py) that can be used to easily create test data for the CLI. After generating the data, [caoe-cerberus-query/demo_test.sh](caoe-cerberus-query/demo_test.sh) shell script can be used to run the tests.
 Running the script is easy; it accepts various optional parameters as follows:
 
 | Flag | Explanation |
