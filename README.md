@@ -209,7 +209,7 @@ For contributing to PSMT, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 
 ## System and Dependencies
-Our solutions are designed for modern Ubuntu distributions, though other Linux distributions should also work. Requirements are a modern C++ toolchain (C++17 and GCC 9 or later), OpenMP, and [OpenFHE](https://github.com/openfheorg/openfhe-development). OpenFHE v1.0.3 should be installed in the default system directory (`/usr/local/`).
+Our solutions are designed for modern Ubuntu distributions, though other Linux distributions should also work. Requirements are a modern C++ toolchain (C++17 and GCC 9 or later), OpenMP, and [OpenFHE](https://github.com/openfheorg/openfhe-development). OpenFHE should be installed in the default system directory (`/usr/local/`). The proposed protocol has been tested using OpenFHE v1.0.3.
 
 Developers should also have clang-format, cpplint, and black. For further information about how to run the sender and receiver programs, look into the `docs` folder.
 
