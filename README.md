@@ -141,6 +141,36 @@ PSMT has multiple external dependencies that must be pre-installed. They are lis
 The PSMT library comes with example command-line programs implementing a sender and a receiver. 
 In this section, we describe how to run these programs. We store all the setup files such as cryptocontexts, and keys in file by default.
 
+
+### Test
+
+The library contains a Python script [caoe-cerberus-query/utilities/gen_emails.py](caoe-cerberus-query/utilities/gen_emails.py) that can be used to easily create test data for the CLI.
+Running the script is easy; it accepts various optional parameters as follows:
+
+| Flag | Explanation |
+|-----------|-------------|
+| `EXECUTIVE` | Turn this on for the executive summary only |
+| `SETUP` | This sets up the encryption parameters and cryptocontext from scratch |
+| `ONLINE` | This turns on the online mode for PSMT |
+| `DO_HASHING` | This enables the hashing of the elements to be queried |
+| `PARALLEL` | This enables parallel processing wherever possible |
+| `ONE_SITE` | Turn this on to make sure only one site has the share of the decryption keys |
+| `INTERSECTION` | Use this flag to enable/disable intersection in the sets during query |
+| `TYPE` | This can be set to the encryption scheme to be used (BFV or CKKS) |
+| `NUM_PARTIES` | Use this to set the number of parties that are involed in the protocol |
+| `NUM_KEY_SHARES` | Use this to set up the number of parties who can hold the secret key share |
+
+To run a test for PSMT with CKKS as the backend FHE library, with positive intersection result and one site performing the computations required for PSMT run: 
+```
+INTERSECTION=1 EXECUTIVE=1 DO_HASHING=0 TYPE=CKKS ONE_SITE=1 ./demo_test.sh
+```
+
+To run a test for PSMT with BFV as the backend FHE library, with negative intersection result and one site performing the computations required for PSMT run: 
+```
+INTERSECTION=0 EXECUTIVE=1 DO_HASHING=0 TYPE=BFV ONE_SITE=1 ./demo_test.sh
+```
+
+
 ### Common Arguments
 
 The following optional arguments are common to both the sender and the receiver applications. They help set up the encryption parameters, cryptocontext, and keys. 
@@ -175,30 +205,6 @@ Note that the receiver may already know the parameters, and the parameter reques
 | `-m` | File containing sender inputs |
 | `-n` | The number of ciphertexts |
 | `-b` | The size of senders' sets in bits |
-
-
-### Test
-
-The library contains a Python script [caoe-cerberus-query/utilities/gen_emails.py](caoe-cerberus-query/utilities/gen_emails.py) that can be used to easily create test data for the CLI.
-Running the script is easy; it accepts various optional parameters as follows:
-
-| Flag | Explanation |
-|-----------|-------------|
-| `EXECUTIVE` | Turn this on for the executive summary only |
-| `SETUP` | This sets up the encryption parameters and cryptocontext from scratch |
-| `ONLINE` | This turns on the online mode for PSMT |
-| `DO_HASHING` | This enables the hashing of the elements to be queried |
-| `PARALLEL` | This enables parallel processing wherever possible |
-| `ONE_SITE` | Turn this on to make sure only one site has the share of the decryption keys |
-| `INTERSECTION` | Use this flag to enable/disable intersection in the sets during query |
-| `TYPE` | This can be set to the encryption scheme to be used (BFV or CKKS) |
-| `NUM_PARTIES` | Use this to set the number of parties that are involed in the protocol |
-| `NUM_KEY_SHARES` | Use this to set up the number of parties who can hold the secret key share |
-
-
-```
-INTERSECTION=1 EXECUTIVE=1 DO_HASHING=0 TYPE=CKKS ONE_SITE=1 ./demo_test.sh
-```
 
 
 ## Acknowledgments
