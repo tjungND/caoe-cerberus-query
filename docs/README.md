@@ -20,8 +20,9 @@
 
 ### Private Segmented Membership Test (PSMT)
 
-Private Segmented Membership Test refers to a functionality where there exist two or more parties known as senders and a single party known as the receiver. Each of the senders hold a private set of *items*, and the receiver holds a single item. Using PSMT, the receiver can check if a single item is present in the private set of *items* without revealing anything to the senders.
+Private Segmented Membership Test refers to a functionality where there exist two or more parties known as senders and a single party known as the receiver. Each of the senders holds a private set of *items*, and the receiver holds a single item. Using PSMT, the receiver can check if a single item is present in the private set of *items* without revealing anything to the senders.
 We use the terminology *sender* and *receiver* to denote the two parties in the PSMT protocol: the senders send the result to the receiver.
+Link to the paper: [Summation based PSMT from threshold FHE](https://eprint.iacr.org/2024/753.pdf)
 
 ## How PSMT Works
 
