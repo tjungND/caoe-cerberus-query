@@ -1,5 +1,6 @@
-// g++ -std=c++17 -o multi_query_parallel multi_query_parallel.cpp -DOPENFHE_VERSION=1.0.3 -Wno-parentheses -DMATHBACKEND=4 -Wl,-rpath,/usr/local/lib/ /usr/local/lib/libOPENFHEcore.so /usr/local/lib/libOPENFHEpke.so /usr/local/lib/libOPENFHEpke_static.a /usr/local/lib/libOPENFHEcore_static.a -I /usr/local/include/openfhe/core -I /usr/local/include/openfhe/pke -I /usr/local/include/openfhe/ -lstdc++fs -O3 -fopenmp
+// g++ -std=c++17 -o multi_query multi_query.cpp -DOPENFHE_VERSION=1.0.3 -Wno-parentheses -DMATHBACKEND=4 -Wl,-rpath,/usr/local/lib/ /usr/local/lib/libOPENFHEcore.so /usr/local/lib/libOPENFHEpke.so /usr/local/lib/libOPENFHEpke_static.a /usr/local/lib/libOPENFHEcore_static.a -I /usr/local/include/openfhe/core -I /usr/local/include/openfhe/pke -I /usr/local/include/openfhe/ -lstdc++fs -O3 -fopenmp
 
+// This code implements parallelism for evaluating the ciphertexts
 
 #include "openfhe.h"
 #include <cmath>
@@ -22,6 +23,15 @@ void EvalFunctionExample();
 
 auto derivative_htan_func = [](double x) -> double { return (1 - tanh(pow(10.0 * x, 2))); };
 
+void printFirst20Values(const std::vector<double>& vec) {
+    std::cout << "First 20 values of vec_result2:" << std::endl;
+    std::cout << std::fixed << std::setprecision(2); // set precision for double values
+    size_t count = 0;
+    for (size_t i = 0; i < vec.size() && count < 20; ++i) {
+        std::cout << "Value " << (i + 1) << ": " << vec[i] << std::endl;
+        ++count;
+    }
+}
 
 std::vector<double> generateRandomNonZeroValues(int size, double min_val, double max_val) {
     std::vector<double> result;
@@ -142,7 +152,10 @@ int main(int argc, char* argv[]) {
 
 
 void EvalFunctionExample() {
-  size_t numQueryVectors = 128;  // Change this variable to control the number of query vectors -> checked and works for upto 128
+    size_t numQueryVectors;
+    std::cout << "Enter the number of query vectors to process: ";
+    std::cin >> numQueryVectors;
+      // Change this variable to control the number of query vectors -> checked and works for upto 128
     std::cout << "--------------------------------- EVAL DEP CHEBYSHEV FUNCTION for "<< numQueryVectors << " receiver elements ---------------------------------"
               << std::endl;
               steady_clock::time_point start, end;
@@ -168,10 +181,43 @@ void EvalFunctionExample() {
     double high_bound = R;
     int setSize=33554430;
 
-    parameters.SetSecurityLevel(HEStd_128_classic);
+    #if NATIVEINT == 128 
+     std::cout << "Running CKKS in 128-bit mode." << std::endl;
+    #else
+     std::cout << "Running CKKS in 64-bit mode." << std::endl;
+    #endif
+    /////  
+    
     parameters.SetMultiplicativeDepth(multDepth);
+
+    parameters.SetExecutionMode(EXEC_EVALUATION);
+    
+
+    
+    parameters.SetRingDim(1 << 16);
+   // parameters.SetScalingModSize(45);
+
+
+    
+    int alpha = 1024;
+    int s = 30;
+    parameters.SetNumAdversarialQueries(alpha);
+    parameters.SetStatisticalSecurity(s);
+    parameters.SetThresholdNumOfParties(5);
+
+    // sigma (noise bits) = underroot(24 * N * alpha) * 2^(s/2), N is the ring-dimension of RLWE
+    double noise = 30;  // originally 34, highest 42
+    parameters.SetNoiseEstimate(noise);
+    parameters.SetSecurityLevel(HEStd_128_classic);
+
+    // We can set our desired precision for 128-bit CKKS only. For NATIVE_SIZE=64, we ignore this parameter.
+    parameters.SetDesiredPrecision(10);
+    parameters.SetDecryptionNoiseMode(NOISE_FLOODING_DECRYPT);
+
+
     parameters.SetScalingModSize(45);
     parameters.SetBatchSize(32768);
+    
 
 
     CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);
@@ -180,6 +226,16 @@ void EvalFunctionExample() {
     cc->Enable(LEVELEDSHE);
     // We need to enable Advanced SHE to use the Chebyshev approximation.
     cc->Enable(ADVANCEDSHE);
+    cc->Enable(MULTIPARTY);
+
+
+    std::cerr << "CKKS parameters :::::::: " << parameters << std::endl;
+    std::cerr << std::endl;
+
+    std::cerr << "p = " << cc->GetCryptoParameters()->GetPlaintextModulus() << std::endl;
+    std::cerr << "n = " << cc->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder() / 2 << std::endl;
+    std::cerr << "log2 q = " << log2(cc->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble())
+              << std::endl;
 
     usint cyclOrder = cc->GetCyclotomicOrder();
 
@@ -234,27 +290,24 @@ void EvalFunctionExample() {
 
     // Resize the test_vals to 32768, keeping the first 32768 elements
     if (test_vals.size() > setSize) {
-        test_vals.resize(32763);
+        test_vals.resize(batchSize-numQueryVectors);
       //  test_vals2.resize(8191);
     }
 
-    test_vals.push_back(5);
-    test_vals.push_back(1);
-    test_vals.push_back(2);
-    test_vals.push_back(3);
-    test_vals.push_back(4);
+    for (double i = 0; i < numQueryVectors; ++i) {
+      test_vals.push_back(i+1);
+    }
 
-// new idea code:
+// NEW IDEA CODE BEGINS:
 
-std::vector<double> query_vec;
-query_vec.push_back(1);
-query_vec.push_back(2);
-query_vec.push_back(3);
+  std::vector<double> query_vec;
+  for (double i = 0; i < numQueryVectors; ++i) {
+      query_vec.push_back(i+1);
+    }
 
 
-for (double i = 0; i < batchSize-3; ++i) {
-    query_vec.push_back(4);
-    //test_vals2.push_back(i);
+for (double i = 0; i < batchSize-numQueryVectors; ++i) {
+    query_vec.push_back(0);
 }
 
 Ciphertext<DCRTPoly> query_ctext;
@@ -366,7 +419,7 @@ for (size_t i = 1; i <= batchSize / 2; i <<= 1) {
       }
 
 
-std::vector<double> sender_vec;
+      std::vector<double> sender_vec;
 
       for (double i = 1; i <= batchSize; ++i) {
           sender_vec.push_back(i);
@@ -412,13 +465,14 @@ std::vector<double> sender_vec;
 
 
 steady_clock::time_point comp_time, comp_end;
-comp_time = steady_clock::now();
+    comp_time = steady_clock::now();
 
-size_t j=4;
-size_t k=3;
+     size_t j=4;
+    size_t k=3;
 
 std::vector<std::thread> threads;
-
+  
+// running the code in parallel
 for (size_t i=0; i<numQueryVectors; i++)
 {
   threads.emplace_back(processQuery, L, R, n, std::ref(results[i]), cc, j, k, low_bound, high_bound, poly_approx_deg);
@@ -429,11 +483,11 @@ for (size_t i=0; i<numQueryVectors; i++)
     // threads.emplace_back(processQuery, L, R, n, std::ref(results[2]), cc, j, k, low_bound, high_bound, poly_approx_deg);
     // threads.emplace_back(processQuery, L, R, n, std::ref(results[3]), cc, j, k, low_bound, high_bound, poly_approx_deg);
 
-for (auto& thread : threads) {
-    thread.join();
-}
+    for (auto& thread : threads) {
+        thread.join();
+    }
 
-
+    
 
     Ciphertext<DCRTPoly> result = cc->EvalAddMany(results);
     // cc->EvalAddInPlace(result, results[2]);
@@ -550,7 +604,9 @@ comp_end = steady_clock::now();
 
 long double d11 = duration_cast<measure_typ>(comp_end - comp_time).count();
     cout << "COMPUTATION time w/o parallelization: " << d11 << "ms" << endl;
+
 */
+
 
 
     //result = cc->EvalAddManyInPlace(sender_vals);
@@ -569,6 +625,8 @@ long double d11 = duration_cast<measure_typ>(comp_end - comp_time).count();
     std::cout << "precision bits after decryption: " << pt1->GetLogPrecision() << std::endl;
 
     std::vector<double> vec_result2 = pt1->GetRealPackedValue();
+
+    printFirst20Values(vec_result2);
 
     double result0 = 0.0;
     std::cout << "\n";
