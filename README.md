@@ -5,7 +5,7 @@
 - [How PSMT Works](#how-psmt-works)
   - [Homomorphic Encryption](#homomorphic-encryption)
   - [Theory](#theory)
-- [Using PSMT](#using-psmt)run_demo_test_CKKS
+- [Using PSMT](#using-psmt)
   - [Receiver](#receiver)
   - [Sender](#sender(s))
   - [Domain Extension Polynomial (DEP) parameters](#domain-extension-polynomial-(dep)-parameters)
