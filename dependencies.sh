@@ -14,6 +14,7 @@ touch ~/.parallel/will-cite # Include this to suppress annoying GNU Parallel mes
 
 git clone https://github.com/openfheorg/openfhe-development.git
 cd openfhe-development
+git checkout tags/v1.0.3 # Checkout the tested version v1.0.3
 mkdir build && cd build
 cmake .. -DBUILD_STATIC=ON -DNATIVE_SIZE=128
 NUM_CPUS=$(nproc --all)
