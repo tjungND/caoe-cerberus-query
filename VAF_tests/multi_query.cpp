@@ -1,11 +1,13 @@
 // g++ -std=c++17 -o multi_query multi_query.cpp -DOPENFHE_VERSION=1.0.3 -Wno-parentheses -DMATHBACKEND=4 -Wl,-rpath,/usr/local/lib/ /usr/local/lib/libOPENFHEcore.so /usr/local/lib/libOPENFHEpke.so /usr/local/lib/libOPENFHEpke_static.a /usr/local/lib/libOPENFHEcore_static.a -I /usr/local/include/openfhe/core -I /usr/local/include/openfhe/pke -I /usr/local/include/openfhe/ -lstdc++fs -O3 -fopenmp
 
-// This code implements parallelism for evaluating the ciphertexts
+// This code implements parallelism for evaluating multi-query PSMT ciphertexts
 
 #include "openfhe.h"
 #include <cmath>
 #include <ctime>
 #include <cassert>
+#include <omp.h>
+#include <numeric> // For std::iota
 
 #include <iostream>
 #include <vector>
@@ -18,6 +20,7 @@ using namespace lbcrypto;
 using namespace std;
 using namespace std::chrono;
 using measure_typ = std::chrono::milliseconds;
+
 
 void EvalFunctionExample();
 
@@ -179,7 +182,7 @@ void EvalFunctionExample() {
 
     double low_bound = -R;
     double high_bound = R;
-    int setSize=33554430;
+    int setSize = 32768;
 
     #if NATIVEINT == 128 
      std::cout << "Running CKKS in 128-bit mode." << std::endl;
@@ -192,8 +195,6 @@ void EvalFunctionExample() {
 
     parameters.SetExecutionMode(EXEC_EVALUATION);
     
-
-    
     parameters.SetRingDim(1 << 16);
    // parameters.SetScalingModSize(45);
 
@@ -203,15 +204,14 @@ void EvalFunctionExample() {
     int s = 30;
     parameters.SetNumAdversarialQueries(alpha);
     parameters.SetStatisticalSecurity(s);
-    parameters.SetThresholdNumOfParties(5);
-
+ 
     // sigma (noise bits) = underroot(24 * N * alpha) * 2^(s/2), N is the ring-dimension of RLWE
     double noise = 30;  // originally 34, highest 42
     parameters.SetNoiseEstimate(noise);
     parameters.SetSecurityLevel(HEStd_128_classic);
 
     // We can set our desired precision for 128-bit CKKS only. For NATIVE_SIZE=64, we ignore this parameter.
-    parameters.SetDesiredPrecision(10);
+    // parameters.SetDesiredPrecision(10);
     parameters.SetDecryptionNoiseMode(NOISE_FLOODING_DECRYPT);
 
 
@@ -269,46 +269,45 @@ void EvalFunctionExample() {
 
     std::cout << "Noise level: " << parameters.GetNoiseEstimate() << std::endl;
 
-    std::vector<double> test_vals;
+/*
+     std::vector<double> test_vals;
+    test_vals.reserve(2 * setSize); // Reserve enough space to avoid reallocations
 
-    // Generate values from -99000 to -3
-    for (double i = -setSize; i <= -1; ++i) {
-        test_vals.push_back(i);
-        //test_vals2.push_back(i);
-    }
+    // Generate values from -setSize to -1
+    std::vector<double> negative_vals(setSize);
+    std::iota(negative_vals.begin(), negative_vals.end(), -static_cast<double>(setSize));
+    test_vals.insert(test_vals.end(), negative_vals.begin(), negative_vals.end());
 
-    // Generate values from 3 to 99000
-    for (double i = 1; i <= setSize; ++i) {
-        test_vals.push_back(i);
-        //test_vals2.push_back(i);
-    }
+    // Generate values from 1 to setSize
+    std::vector<double> positive_vals(setSize);
+    std::iota(positive_vals.begin(), positive_vals.end(), 1.0);
+    test_vals.insert(test_vals.end(), positive_vals.begin(), positive_vals.end());
+
     // Shuffle the elements randomly
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(test_vals.begin(), test_vals.end(), g);
-    //std::shuffle(test_vals2.begin(), test_vals2.end(), g);
 
-    // Resize the test_vals to 32768, keeping the first 32768 elements
-    if (test_vals.size() > setSize) {
-        test_vals.resize(batchSize-numQueryVectors);
-      //  test_vals2.resize(8191);
+    // Resize the test_vals to batchSize - numQueryVectors, keeping the first (batchSize - numQueryVectors) elements
+    if (test_vals.size() > batchSize - numQueryVectors) {
+        test_vals.resize(batchSize - numQueryVectors);
     }
 
-    for (double i = 0; i < numQueryVectors; ++i) {
-      test_vals.push_back(i+1);
+    // Add values from 1 to numQueryVectors
+    for (size_t i = 0; i < numQueryVectors; ++i) {
+        test_vals.push_back(i + 1);
     }
+*/
 
 // NEW IDEA CODE BEGINS:
 
-  std::vector<double> query_vec;
-  for (double i = 0; i < numQueryVectors; ++i) {
-      query_vec.push_back(i+1);
-    }
+std::vector<double> query_vec(batchSize);
 
+// Fill the first numQueryVectors elements with values from 1 to numQueryVectors
+std::iota(query_vec.begin(), query_vec.begin() + numQueryVectors, 1.0);
 
-for (double i = 0; i < batchSize-numQueryVectors; ++i) {
-    query_vec.push_back(0);
-}
+// Fill the remaining elements with 0
+std::fill(query_vec.begin() + numQueryVectors, query_vec.end(), 0.0);
 
 Ciphertext<DCRTPoly> query_ctext;
 Plaintext pt4 = cc->MakeCKKSPackedPlaintext(query_vec);
@@ -340,6 +339,8 @@ std::vector<double> sender_vec;
 for (double i = 1; i <= batchSize; ++i) {
     sender_vec.push_back(i);
 }
+
+// this should be changed to test_vals 
 Plaintext pt3 = cc->MakeCKKSPackedPlaintext(sender_vec);
 Ciphertext<DCRTPoly> sender_ctext = cc->Encrypt(pk, pt3);
 
@@ -465,11 +466,11 @@ for (size_t i = 1; i <= batchSize / 2; i <<= 1) {
 
 
 steady_clock::time_point comp_time, comp_end;
-    comp_time = steady_clock::now();
+comp_time = steady_clock::now();
 
      size_t j=4;
     size_t k=3;
-
+/*
 std::vector<std::thread> threads;
   
 // running the code in parallel
@@ -486,12 +487,16 @@ for (size_t i=0; i<numQueryVectors; i++)
     for (auto& thread : threads) {
         thread.join();
     }
+  */
+//omp_set_num_threads(64);
 
-    
+#pragma omp parallel for
+for (size_t i = 0; i < numQueryVectors; ++i) {
+    processQuery(L, R, n, results[i], cc, j, k, low_bound, high_bound, poly_approx_deg);
+}
+
 
     Ciphertext<DCRTPoly> result = cc->EvalAddMany(results);
-    // cc->EvalAddInPlace(result, results[2]);
-    // cc->EvalAddInPlace(result, results[3]);
 
     comp_end = steady_clock::now();
     long double d11 = duration_cast<measure_typ>(comp_end - comp_time).count();
